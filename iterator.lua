@@ -1,181 +1,202 @@
 local M = {}
-local tbl = require 'tbl'
 
-local unpack = table.unpack or unpack
-
--- Core functions
-
-M.skip = {}
-
-function M.transform(cb)
-  return function(f, s, var)
-    local k = var
-    return function()
-      while true do
-        local vars = { f(s, k) }
-        -- local vars = pack(f(s, k))
-        k = vars[1]
-        if k == nil then
-          return
-        end
-        local res = { cb(unpack(vars)) }
-        -- local res = pack(cb(unpack(vars)))
-        local k2 = res[1]
-        if k2 == nil then
-          return
-        end
-        if k2 ~= M.skip then
-          return unpack(res)
-        end
+function M.map(cb)
+  return function(gen, param, state)
+    local s = state
+    local function map0(k, ...)
+      if k then
+        s = k
+        return cb(k, ...)
       end
+    end
+    return function()
+      return map0(gen(param, s))
     end
   end
 end
 
-function M.last(f, s, var)
-  local lvars
-  while true do
-    local vars = { f(s, var) }
-    var = vars[1]
-    if var == nil then
-      if lvars == nil then
+function M.map_opt(cb)
+  return function(gen, param, state)
+    local s = state
+    local a
+    local function b(r_, ...)
+      if r_ == nil then
+        return a(gen(param, s))
+      else
+        return r_, ...
+      end
+    end
+    function a(s_, ...)
+      s = s_
+      if s == nil then
         return
       end
-      return unpack(lvars)
+      return b(cb(s, ...))
     end
-    lvars = vars
+    return function()
+      return a(gen(param, s))
+    end
   end
 end
 
-function M.fold(reducer, init, default)
-  if init == nil then
-    init = function(...)
-      local args = { ... }
-      return args[#args]
-    end
-  end
-  if type(init) ~= 'function' then
-    default = default or init
-    local acc0 = init
-    init = function(...)
-      return reducer(acc0, ...)
-    end
-  end
-  local acc
-  return function(f, s, var)
-    M.last(M.transform(function(...)
-      local vars = { ... }
-      if acc == nil then
-        acc = init(unpack(vars))
-      else
-        acc = reducer(acc, unpack(vars))
+function M.filter(cb)
+  return function(gen, param, state)
+    local function a(k, ...)
+      if k == nil then
+        return
       end
-      return acc
-    end)(f, s, var))
-    if acc == nil then
-      acc = default
+      if cb(k, ...) then
+        return k, ...
+      end
+      return a(gen(param, k))
+    end
+    return function(_, k_)
+      return a(gen(param, k_))
+    end, nil, state
+  end
+end
+
+function M.indexize(gen, param, state)
+  local i = 0
+  local function indexize(...)
+    i = i + 1
+    return i, ...
+  end
+  return M.map(indexize)(gen, param, state)
+end
+
+function M.last(gen, param, state)
+  local largs, args
+  while true do
+    args = { gen(param, state) }
+    state = args[1]
+    if state == nil then
+      if largs == nil then
+        return
+      else
+        return unpack(largs)
+      end
+    end
+    largs = args
+  end
+end
+
+function M.last1(gen, param, state)
+  local lstate
+  for state_ in gen, param, state do
+    lstate = state_
+  end
+  return lstate
+end
+
+function M.last3(gen, param, state)
+  local lstate1, lstate2, lstate3
+  for state1_, state2_, state3_ in gen, param, state do
+    lstate1, lstate2, lstate3 = state1_, state2_, state3_
+  end
+  return lstate1, lstate2, lstate3
+end
+
+function M.folder1(reducer, acc)
+  local fun, first
+  if acc == nil then
+    acc = M.id
+  end
+  if type(acc) == 'function' then
+    fun, first = acc, true
+  end
+  local function folder(...)
+    if first then
+      acc = fun(...)
+      first = false
+    else
+      acc = reducer(acc, ...)
     end
     return acc
   end
+  return M.map(folder)
 end
 
-function M.id(...)
-  return ...
+function M.folder3(reducer, init)
+  local first
+  local acc1, acc2, acc3
+  local function folder(...)
+    if first then
+      acc1, acc2, acc3 = init(...)
+      first = false
+    else
+      acc1, acc2, acc3 = reducer(acc1, acc2, acc3, ...)
+    end
+    return acc1, acc2, acc3
+  end
+  return M.map(folder)
 end
 
-function M.chain(cb, isArray)
-  return function(f, s, k)
-    local args, args2
-    local f2, s2, k2
-    local lk = 0
-    local d
-    return function()
-      while true do
-        if k2 == nil then
-          d = lk
-          args = { f(s, k) }
-          k = args[1]
-          if k == nil then
-            return
-          end
-          f2, s2, k2 = cb(unpack(args))
-          if not f2 then
-            return
-          end
+function M.fold1(reducer, acc)
+  return M.compose(M.folder1(reducer, acc), M.last1)
+end
+
+function M.fold3(reducer, acc)
+  return M.compose(M.folder3(reducer, acc), M.last3)
+end
+
+function M.chain(cb)
+  return M.compose(M.map(cb), M.flatten)
+end
+
+function M.cross(cb) end
+
+function M.concat(gen2, param2, state2)
+  return function(gen1, param1, state1)
+    local second
+    local gen = gen1
+    local param = param1
+    local function a(state_, ...)
+      if state_ == nil then
+        if second then
+          return
         end
-        args2 = { f2(s2, k2) }
-        k2 = args2[1]
-        if k2 ~= nil then
-          if isArray then
-            lk = k2
-            args2[1] = k2 + d
-          end
-          return unpack(args2)
-        end
-      end
-    end
-  end
-end
-
-function M.ichain(cb)
-  return M.chain(cb, true)
-end
-
---- concatenate two iterator
----@param _f2 function
----@param _s2 any
----@param _var2 any
----@return function(_f1: function, _s1: any, _var1: any): function(): ...
-function M.concat(_f2, _s2, _var2)
-  return function(_f1, _s1, _var1)
-    local function shifter(i)
-      if i == 1 then
-        return _f1, _s1, _var1
+        second = true
+        gen = gen2
+        param = param2
+        return a(gen(param, state2))
       else
-        return _f2, _s2, _var2
+        return state_, ...
       end
     end
-    return M.chain(shifter)(M.range(1, 2))
+    return function(_, state__)
+      return a(gen(param, state__))
+    end,
+      nil,
+      state1
   end
 end
 
-function M.iconcat(_f2, _s2, _var2)
-  return function(_f1, _s1, _var1)
-    local function shifter(i)
-      if i == 1 then
-        return _f1, _s1, _var1
-      else
-        return _f2, _s2, _var2
-      end
-    end
-    return M.ichain(shifter)(M.range(1, 2))
+local function list_concat0(t1, i, v, ...)
+  if v == nil then
+    return t1
+  else
+    t1[i] = v
+    return list_concat0(t1, i + 1, ...)
   end
 end
 
-local function array_concat(t1, t2)
-  for i = 1, #t2 do
-    t1[#t1 + 1] = t2[i]
-  end
-  return t1
-end
-
-function M.zip(f2, s2, var2)
-  return function(f1, s1, var1)
-    local k1 = var1
-    local k2 = var2
+function M.zip(f2, s2, k2)
+  return function(f1, s1, k1)
     return function()
       local vars1 = { f1(s1, k1) }
-      local vars2 = { f2(s2, k2) }
       k1 = vars1[1]
-      k2 = vars2[1]
       if k1 == nil then
         return
       end
-      if k2 == nil then
-        return
+      local function a(k2_, ...)
+        if k2_ == nil then
+          return
+        end
+        k2 = k2_
+        return unpack(list_concat0(vars1, #vars1 + 1, k2, ...))
       end
-      array_concat(vars1, vars2)
-      return unpack(vars1)
+      return a(f2(s2, k2))
     end
   end
 end
@@ -188,39 +209,49 @@ local function pipe0(f1, f2)
   end
 end
 
-function M.pipe(f1, f2, f3, ...)
-  if not f2 then
-    return f1
-  end
-  if not f3 then
-    return pipe0(f1, f2)
-  end
-  return pipe0(f1, M.pipe(f2, f3, ...))
+local function id(...)
+  return ...
 end
 
-function M.compose(f1, f2, f3, ...)
-  if not f2 then
+local function pipe_n(f1, f2, ...)
+  if f2 then
+    return pipe0(f1, pipe_n(f2, ...))
+  elseif f1 then
     return f1
+  else
+    return id
   end
-  if not f3 then
-    return pipe0(f2, f1)
-  end
-  return pipe0(M.compose(f2, f3, ...), f1)
 end
+
+M.pipe = pipe_n
+
+local function compose_n(f1, f2, ...)
+  if f2 then
+    return pipe0(compose_n(f2, ...), f1)
+  elseif f1 then
+    return f1
+  else
+    return id
+  end
+end
+
+M.compose = compose_n
 
 function M.comp(...)
-  arg = { ... }
+  local args = { ... }
   return function(...)
-    return M.compose(...)(unpack(arg))
+    return M.compose(...)(unpack(args))
   end
 end
+
+M.id = id
 
 -- Extra methods
 
 -- iterator transformation
 
 function M.tap(cb)
-  return M.transform(function(...)
+  return M.map(function(...)
     cb(...)
     return ...
   end)
@@ -230,46 +261,75 @@ function M.each(cb)
   return pipe0(M.last, M.tap(cb))
 end
 
-function M.take_while(cb)
-  return M.transform(function(...)
+local function counter(n)
+  return function()
+    n = n - 1
+    return n >= 0
+  end
+end
+
+function M.take(cb)
+  if type(cb) == 'number' then
+    cb = counter(cb)
+  end
+  return M.map(function(...)
     if cb(...) then
       return ...
     end
   end)
 end
 
-function M.drop_while(cb, isArray)
-  local passing
-  local d = 0
-  return M.transform(function(...)
-    passing = passing or not cb(...)
-    if passing then
-      if isArray then
-        local args = { ... }
-        args[1] = args[1] - d
-        return unpack(args)
-      end
-      return ...
+local function replay(gen, param, state, res)
+  local first = true
+  return function(_, state_)
+    if first then
+      first = false
+      return state, unpack(res)
     else
-      d = ...
-      return M.skip
+      return gen(param, state_)
     end
-  end)
+  end,
+    nil,
+    state
 end
 
-function M.idrop_while(cb)
-  return M.drop_while(cb, true)
+function M.drop(cb)
+  if type(cb) == 'number' then
+    cb = counter(cb)
+  end
+  return function(gen, param, state)
+    local function d(state_, ...)
+      if state_ == nil then
+        return function() end
+      end
+      if cb(state_, ...) then
+        return d(gen(param, state_))
+      end
+      return replay(gen, param, state_, { ... })
+    end
+    return d(gen(param, state))
+  end
+end
+
+function M.tail(gen, param, state)
+  state = gen(param, state)
+  return gen, param, state
+end
+
+function M.tail_head(gen, param, state)
+  state = gen(param, state)
+  return gen, param, state, M.head(gen, param, state)
 end
 
 -- iterators
 
 --- empty iterator
-function M.zero() end
+function M.null() end
 
 --- returns iterator that yields argument tuple once
 ---@vararg any
 ---@return function(_: any, k: any): ...
-function M.unit(...)
+function M.once(...)
   local args = { ... }
   return function(_, k)
     if k == nil then
@@ -278,13 +338,19 @@ function M.unit(...)
   end
 end
 
-function M.range(b, e, s)
-  s = s or 1
-  b = b or 1
-  b = b - s
-  return function(_, i)
-    i = i + 1
-    local v = b + i * s
+function M.range(a_, b_, c_)
+  local b, e, s
+  if a_ and b_ and c_ then
+    b, e, s = a_, b_, c_
+  elseif a_ and b_ then
+    b, e, s = a_, b_, 1
+  elseif a_ then
+    b, e, s = 1, a_, 1
+  else
+    b, e, s = 1, nil, 1
+  end
+  return function(_, v)
+    v = v + s
     if e then
       if s > 0 then
         if v > e then
@@ -296,24 +362,92 @@ function M.range(b, e, s)
         end
       end
     end
-    return i, v
+    return v
   end,
-    _,
-    0
+    nil,
+    b - s
 end
 
 -- iterator consumption
 
-function M.tabularize(t)
+function M.to_table(t)
   t = t or {}
-  return M.fold(function(acc, k, v)
-    acc[k] = v
-    return acc
-  end, t)
+  return function(gen, param, state)
+    local k = state
+    while true do
+      local v
+      k, v = gen(param, k)
+      if k == nil then
+        return t
+      else
+        t[k] = v
+      end
+    end
+  end
 end
 
-function M.first(_f, _s, _var)
-  return _f and _f(_s, _var)
+function M.to_list(l)
+  l = l or {}
+  local i = #l
+  return function(gen, param, state)
+    local v = state
+    while true do
+      v = gen(param, v)
+      if v == nil then
+        return l
+      else
+        i = i + 1
+        l[i] = v
+      end
+    end
+  end
+end
+
+function M.nth(n)
+  return function(gen, param, state)
+    while n > 1 do
+      n = n - 1
+      state = gen(param, state)
+      if not state then
+        return
+      end
+    end
+    return gen(param, state)
+  end
+end
+
+function M.head(gen, param, state)
+  return gen(param, state)
+end
+
+function M.flatten(gen1, param1, state1)
+  local gen2, param2, state2 = gen1(param1, state1)
+  if gen2 == nil then
+    return
+  end
+  local function d(k2_, ...)
+    state2 = k2_
+    if state2 == nil then
+      gen2, param2, state2 = gen1(param1, state1)
+      if gen2 == nil then
+        return
+      end
+      return d(gen2(param2, state2))
+    else
+      return state2, ...
+    end
+  end
+  return function()
+    return d(gen2(param2, state2))
+  end
+end
+
+function M.tbl(t, ...)
+  return M.to_table()(M.comp(pairs(t))(...))
+end
+
+function M.list(t, ...)
+  return M.to_table()(M.comp(ipairs(t))(...))
 end
 
 return M
