@@ -5,7 +5,7 @@ if _VERSION ~= 'Lua 5.1' then
   return
 end
 
-local f = require 'init'
+local f = require 'iterators'
 
 describe('flua', function()
   describe('to_table', function()
@@ -155,7 +155,7 @@ describe('flua', function()
     end)
   end)
   describe('filter', function()
-    it('should fileter values', function()
+    it('should filtered values', function()
       local function odd(i)
         return i % 2 == 1
       end
@@ -203,7 +203,7 @@ describe('flua', function()
   end)
   describe('min', function()
     it('should return the min value', function()
-      assert.are.same(f.comp { 2, 4, 0, 5 } (ipairs, f.imin()), 0)
+      assert.are.same(f.comp { 2, 4, -1, 5 } (ipairs, f.min()), -1)
     end)
   end)
   describe('each', function()
@@ -272,7 +272,7 @@ describe('flua', function()
 
       assert.are.same(
         { 1, 1, 1, 1 },
-        f.compose(f.chain(t), f.head, pack)(f.range(3))
+        f.compose(f.chain(t), f.head(), pack)(f.range(3))
       )
     end)
   end)

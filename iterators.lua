@@ -315,20 +315,30 @@ function M.drop(cb)
   end
 end
 
-function M.tail(gen, param, state)
-  state = gen(param, state)
-  return gen, param, state
+function M.tail()
+  return function(gen, param, state)
+    state = gen(param, state)
+    return gen, param, state
+  end
+end
+
+function M.head()
+  return function(gen, param, state)
+    return gen(param, state)
+  end
 end
 
 function M.tail_head(gen, param, state)
   state = gen(param, state)
-  return gen, param, state, M.head(gen, param, state)
+  return gen, param, state, M.head()(gen, param, state)
 end
 
 -- iterators
 
 --- empty iterator
-function M.null() end
+function M.null()
+  return function() end
+end
 
 --- returns iterator that yields argument tuple once
 ---@vararg any
@@ -420,10 +430,6 @@ function M.nth(n)
   end
 end
 
-function M.head(gen, param, state)
-  return gen(param, state)
-end
-
 function M.flatten(gen1, param1, state1)
   local gen2, param2, state2 = gen1(param1, state1)
   if gen2 == nil then
@@ -447,17 +453,49 @@ function M.flatten(gen1, param1, state1)
   end
 end
 
-local function lt(a, b)
-  return a < b
+local function cmp_(a, b)
+  if a < b then
+    return -1
+  end
+  if a > b then
+    return 1
+  end
+  return 0
 end
 
 function M.imin(cmp)
-  cmp = cmp or lt
+  cmp = cmp or cmp_
   return M.fold1(function(acc, _, v)
     if acc == nil then
       return v
     end
-    if cmp(v, acc) then
+    if cmp(v, acc) < 0 then
+      return v
+    end
+    return acc
+  end)
+end
+
+function M.min(cmp)
+  cmp = cmp or cmp_
+  return M.fold1(function(acc, _, v)
+    if acc == nil then
+      return v
+    end
+    if cmp(v, acc) < 0 then
+      return v
+    end
+    return acc
+  end)
+end
+
+function M.max(cmp)
+  cmp = cmp or cmp_
+  return M.fold1(function(acc, _, v)
+    if acc == nil then
+      return v
+    end
+    if cmp(v, acc) > 0 then
       return v
     end
     return acc
