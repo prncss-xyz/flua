@@ -9,6 +9,7 @@ function M.map(cb)
         return cb(k, ...)
       end
     end
+
     return function()
       return map0(gen(param, s))
     end
@@ -26,6 +27,7 @@ function M.map_opt(cb)
         return r_, ...
       end
     end
+
     function a(s_, ...)
       s = s_
       if s == nil then
@@ -33,6 +35,7 @@ function M.map_opt(cb)
       end
       return b(cb(s, ...))
     end
+
     return function()
       return a(gen(param, s))
     end
@@ -50,6 +53,7 @@ function M.filter(cb)
       end
       return a(gen(param, k))
     end
+
     return function(_, k_)
       return a(gen(param, k_))
     end, nil, state
@@ -62,6 +66,7 @@ function M.indexize(gen, param, state)
     i = i + 1
     return i, ...
   end
+
   return M.map(indexize)(gen, param, state)
 end
 
@@ -99,12 +104,6 @@ end
 
 function M.folder1(reducer, acc)
   local fun, first
-  if acc == nil then
-    acc = M.id
-  end
-  if type(acc) == 'function' then
-    fun, first = acc, true
-  end
   local function folder(...)
     if first then
       acc = fun(...)
@@ -114,6 +113,7 @@ function M.folder1(reducer, acc)
     end
     return acc
   end
+
   return M.map(folder)
 end
 
@@ -129,6 +129,7 @@ function M.folder3(reducer, init)
     end
     return acc1, acc2, acc3
   end
+
   return M.map(folder)
 end
 
@@ -164,11 +165,12 @@ function M.concat(gen2, param2, state2)
         return state_, ...
       end
     end
+
     return function(_, state__)
       return a(gen(param, state__))
     end,
-      nil,
-      state1
+        nil,
+        state1
   end
 end
 
@@ -196,6 +198,7 @@ function M.zip(f2, s2, k2)
         k2 = k2_
         return unpack(list_concat0(vars1, #vars1 + 1, k2, ...))
       end
+
       return a(f2(s2, k2))
     end
   end
@@ -289,8 +292,8 @@ local function replay(gen, param, state, res)
       return gen(param, state_)
     end
   end,
-    nil,
-    state
+      nil,
+      state
 end
 
 function M.drop(cb)
@@ -307,6 +310,7 @@ function M.drop(cb)
       end
       return replay(gen, param, state_, { ... })
     end
+
     return d(gen(param, state))
   end
 end
@@ -364,8 +368,8 @@ function M.range(a_, b_, c_)
     end
     return v
   end,
-    nil,
-    b - s
+      nil,
+      b - s
 end
 
 -- iterator consumption
@@ -437,9 +441,27 @@ function M.flatten(gen1, param1, state1)
       return state2, ...
     end
   end
+
   return function()
     return d(gen2(param2, state2))
   end
+end
+
+local function lt(a, b)
+  return a < b
+end
+
+function M.imin(cmp)
+  cmp = cmp or lt
+  return M.fold1(function(acc, _, v)
+    if acc == nil then
+      return v
+    end
+    if cmp(v, acc) then
+      return v
+    end
+    return acc
+  end)
 end
 
 function M.tbl(t, ...)
