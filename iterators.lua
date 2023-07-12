@@ -1,5 +1,6 @@
 local M = {}
 
+--- create an iterate whose values are the result of cb applied to original values
 function M.map(cb)
   return function(gen, param, state)
     local s = state
@@ -16,6 +17,7 @@ function M.map(cb)
   end
 end
 
+--- like map, but skip value when returning undefined
 function M.map_opt(cb)
   return function(gen, param, state)
     local s = state
@@ -42,6 +44,7 @@ function M.map_opt(cb)
   end
 end
 
+--- create a new iterator where values for with cb is falsy are skipped
 function M.filter(cb)
   return function(gen, param, state)
     local function a(k, ...)
@@ -60,6 +63,7 @@ function M.filter(cb)
   end
 end
 
+--- prepend a 1-based index to each iterated value
 function M.indexize(gen, param, state)
   local i = 0
   local function indexize(...)
@@ -70,6 +74,7 @@ function M.indexize(gen, param, state)
   return M.map(indexize)(gen, param, state)
 end
 
+--- returns the last value of an iterator
 function M.last(gen, param, state)
   local largs, args
   while true do
@@ -86,6 +91,7 @@ function M.last(gen, param, state)
   end
 end
 
+--- like last, but optimized for iterators of a single value
 function M.last1(gen, param, state)
   local lstate
   for state_ in gen, param, state do
@@ -94,17 +100,11 @@ function M.last1(gen, param, state)
   return lstate
 end
 
-function M.last3(gen, param, state)
-  local lstate1, lstate2, lstate3
-  for state1_, state2_, state3_ in gen, param, state do
-    lstate1, lstate2, lstate3 = state1_, state2_, state3_
-  end
-  return lstate1, lstate2, lstate3
-end
 
-function M.folder1(reducer, acc)
+--- FIXME:
+function M.scan1(reducer, acc)
   local fun, first
-  local function folder(...)
+  local function scan(...)
     if first then
       acc = fun(...)
       first = false
@@ -114,13 +114,13 @@ function M.folder1(reducer, acc)
     return acc
   end
 
-  return M.map(folder)
+  return M.map(scan)
 end
 
-function M.folder3(reducer, init)
+function M.scan3(reducer, init)
   local first
   local acc1, acc2, acc3
-  local function folder(...)
+  local function scan(...)
     if first then
       acc1, acc2, acc3 = init(...)
       first = false
@@ -130,23 +130,22 @@ function M.folder3(reducer, init)
     return acc1, acc2, acc3
   end
 
-  return M.map(folder)
+  return M.map(scan)
 end
 
 function M.fold1(reducer, acc)
-  return M.compose(M.folder1(reducer, acc), M.last1)
+  return M.compose(M.scan1(reducer, acc), M.last1)
 end
 
 function M.fold3(reducer, acc)
-  return M.compose(M.folder3(reducer, acc), M.last3)
+  return M.compose(M.scan3(reducer, acc), M.last3)
 end
 
 function M.chain(cb)
   return M.compose(M.map(cb), M.flatten)
 end
 
-function M.cross(cb) end
-
+--- create an iterator consting of the succesion of two iterators
 function M.concat(gen2, param2, state2)
   return function(gen1, param1, state1)
     local second
@@ -169,8 +168,8 @@ function M.concat(gen2, param2, state2)
     return function(_, state__)
       return a(gen(param, state__))
     end,
-        nil,
-        state1
+      nil,
+      state1
   end
 end
 
@@ -183,6 +182,9 @@ local function list_concat0(t1, i, v, ...)
   end
 end
 
+--- create an iterator whose value are the concatenation of the values of each iterator
+--- iteration stops when the value of the first iterator is nil
+--- only the second iterator can have multiple values
 function M.zip(f2, s2, k2)
   return function(f1, s1, k1)
     return function()
@@ -226,6 +228,8 @@ local function pipe_n(f1, f2, ...)
   end
 end
 
+--- return a function which is equivalent to the composition of each argument
+--- if no argument are passed, retruns the identity function
 M.pipe = pipe_n
 
 local function compose_n(f1, f2, ...)
@@ -238,6 +242,8 @@ local function compose_n(f1, f2, ...)
   end
 end
 
+--- return a function which is equivalent to the composition of each argument starting from the last
+--- if no argument are passed, retruns the identity function
 M.compose = compose_n
 
 function M.comp(...)
@@ -247,6 +253,7 @@ function M.comp(...)
   end
 end
 
+--- identity function
 M.id = id
 
 -- Extra methods
@@ -292,8 +299,8 @@ local function replay(gen, param, state, res)
       return gen(param, state_)
     end
   end,
-      nil,
-      state
+    nil,
+    state
 end
 
 function M.drop(cb)
@@ -378,8 +385,8 @@ function M.range(a_, b_, c_)
     end
     return v
   end,
-      nil,
-      b - s
+    nil,
+    b - s
 end
 
 -- iterator consumption
