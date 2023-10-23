@@ -19,9 +19,9 @@ end
 
 --- like map, but skip value when returning undefined
 function M.map_opt(cb)
-  return function(gen, param, state)
-    local s = state
+  return function(gen, param, _)
     local a
+    local s
     local function b(r_, ...)
       if r_ == nil then
         return a(gen(param, s))
@@ -99,7 +99,6 @@ function M.last1(gen, param, state)
   end
   return lstate
 end
-
 
 --- FIXME:
 function M.scan1(reducer, acc)
