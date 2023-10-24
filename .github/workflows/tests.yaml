@@ -1,5 +1,8 @@
 name: Tests
-on: [push]
+on:
+  push:
+    branches:
+      - main
 jobs:
   unit-test:
     runs-on: akorn/luarocks:lua5.1-alpine
