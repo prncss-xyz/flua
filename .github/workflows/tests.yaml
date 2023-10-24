@@ -25,9 +25,6 @@ jobs:
       - name: Run tests
         run: busted --coverage
 
-      - name: Find coverage
-        run: find . -name "*.txt"
-
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         with:
