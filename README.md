@@ -1,4 +1,4 @@
-# Flua [![codecov](https://codecov.io/github/prncss-xyz/flua/graph/badge.svg?token=6E4BXIU81Q)](https://codecov.io/github/prncss-xyz/flua)
+# Flua ![lua](https://img.shields.io/badge/Lua-2C2D72?style=for-the-badge&logo=lua&logoColor=white) [![codecov](https://codecov.io/github/prncss-xyz/flua/graph/badge.svg?token=6E4BXIU81Q)](https://codecov.io/github/prncss-xyz/flua)
 
 In lua, [iterators](https://www.lua.org/pil/7.1.html) are a fundamental concept.
 

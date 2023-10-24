@@ -1,0 +1,1 @@
+{"rule":"IN_A_X_MANNER","sentence":"^\\QFlua is a small library to compose lua iterators in a functional style.\\E$"}
