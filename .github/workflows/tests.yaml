@@ -26,11 +26,11 @@ jobs:
         run: busted --coverage
 
       - name: Find coverage
-        run: find . -name "luacov\\.report\\.out"
+        run: find . -name "luacov\\.report\\.txt"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./luacov.report.out
+          files: ./luacov.report.txt
           gcov: true
