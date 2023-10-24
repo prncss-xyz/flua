@@ -1,9 +1,9 @@
 name: Tests
 on: [push]
-  jobs:
-    unit-test:
-      runs-on: akorn/luarocks:lua5.1-alpine
-      steps:
-        - uses: actions/checkout@v4
-        - run: luarocks install busted
-        - run: busted
+jobs:
+  unit-test:
+    runs-on: akorn/luarocks:lua5.1-alpine
+    steps:
+      - uses: actions/checkout@v4
+      - run: luarocks install busted
+      - run: busted
