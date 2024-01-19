@@ -372,7 +372,7 @@ end
 function M.flatten(gen1, param1, state1)
   local gen2, param2, state2 = gen1(param1, state1)
   if gen2 == nil then
-    return
+    return function() end
   end
   local function d(k2_, ...)
     state2 = k2_

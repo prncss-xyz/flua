@@ -162,7 +162,7 @@ describe('flua', function()
   end)
   describe('min', function()
     it('should return the min value', function()
-      assert.are.same(f.comp { 2, 4, -1, 5 }(ipairs, f.min()), -1)
+      assert.are.same(f.comp { 2, 2, 4, -1, 5 }(ipairs, f.min()), -1)
     end)
   end)
   describe('max', function()
@@ -194,31 +194,18 @@ describe('flua', function()
     end)
   end)
   describe('flatten', function()
-    it('description', function()
+    it('flatten nested iterators', function()
       local n = 0
       local function fu()
         n = n + 1
         if n < 4 then
-          local g, p, s = f.range(n)
           return f.range(n)
         end
       end
-
       assert.are.same(f.to_list()(f.flatten(fu)), { 1, 1, 2, 1, 2, 3 })
     end)
-    it('should respect multiple values', function()
-      local function t(i)
-        return f.once(i, i, i, i)
-      end
-
-      local function pack(...)
-        return { ... }
-      end
-
-      assert.are.same(
-        f.compose(f.chain(t), f.head(), pack)(f.range(3)),
-        { 1, 1, 1, 1 }
-      )
+    it('should return empty on empty iterator', function()
+      assert.are.same(f.to_list()(f.flatten(f.null())), {})
     end)
   end)
   describe('chain', function()
@@ -232,8 +219,6 @@ describe('flua', function()
         { 1, 1, 2, 1, 2, 3 }
       )
     end)
-  end)
-  describe('chain', function()
     it('should chain', function()
       local t = { 1, 2, 1, 2 }
       assert.are.same(
@@ -245,6 +230,20 @@ describe('flua', function()
           f.to_table()
         ),
         t
+      )
+    end)
+    it('should respect multiple values', function()
+      local function t(i)
+        return f.once(i, i, i, i)
+      end
+
+      local function pack(...)
+        return { ... }
+      end
+
+      assert.are.same(
+        f.compose(f.chain(t), f.head(), pack)(f.range(3)),
+        { 1, 1, 1, 1 }
       )
     end)
   end)
