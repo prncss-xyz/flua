@@ -67,34 +67,16 @@ describe('flua', function()
   end)
   describe('map', function()
     it('should map', function()
+      local function idouble(k, v)
+        return k, 2 * v
+      end
+      assert.are.same(f.comp {}(ipairs, f.map(idouble), f.to_table()), {})
       assert.are.same(
-        f.comp {}(
-          ipairs,
-          f.map(function(k, v)
-            return k, 2 * v
-          end),
-          f.to_table()
-        ),
-        {}
-      )
-      assert.are.same(
-        f.compose(
-          ipairs,
-          f.map(function(k, v)
-            return k, 2 * v
-          end),
-          f.to_table()
-        ) { 1, 2, 3 },
+        f.compose(ipairs, f.map(idouble), f.to_table()) { 1, 2, 3 },
         { 2, 4, 6 }
       )
       assert.are.same(
-        f.comp { 1, 2, 3 }(
-          ipairs,
-          f.map(function(k, v)
-            return k, 2 * v
-          end),
-          f.to_table()
-        ),
+        f.comp { 1, 2, 3 }(ipairs, f.map(idouble), f.to_table()),
         { 2, 4, 6 }
       )
     end)
