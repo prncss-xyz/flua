@@ -10,4 +10,8 @@ Iterators can return multiple values. Most of the library thrives to manage thes
 
 The library targets lua jit (fork of lua 5.1) and do not work with lua 5.4 or later.
 
+Code is somewhat convoluted as it handles varags without creating tables, using lua specificities to handle the situation purely on stack instead of using heap allocation.
+
 Definition of functions are given in comments, but we use names which are pretty standard amongst similar libraries.
+
+As I am now building a typescript library to deal with transducers, I think the latter is generally a better solution, and will eventually port it pack to lua. Writing this library was anyhow an important step toward that solution.

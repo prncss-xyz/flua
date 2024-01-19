@@ -10,8 +10,8 @@ local f = require 'iterators'
 describe('flua', function()
   describe('to_table', function()
     it('should create a table from iterator', function()
-      assert.are.same({}, f.to_table()(ipairs {}))
-      assert.are.same({ 2, 3, 4 }, f.to_table()(ipairs { 2, 3, 4 }))
+      assert.are.same(f.to_table()(ipairs {}), {})
+      assert.are.same(f.to_table()(ipairs { 2, 3, 4 }), { 2, 3, 4 })
     end)
   end)
   describe('pipe', function()
@@ -28,10 +28,10 @@ describe('flua', function()
         return t .. 'd'
       end
 
-      assert.are.same('a', f.pipe() 'a')
-      assert.are.same('ad', f.pipe(fd) 'a')
-      assert.are.same('acd', f.pipe(fd, fc) 'a')
-      assert.are.same('abcd', f.pipe(fd, fc, fb) 'a')
+      assert.are.same(f.pipe() 'a', 'a')
+      assert.are.same(f.pipe(fd) 'a', 'ad')
+      assert.are.same(f.pipe(fd, fc) 'a', 'acd')
+      assert.are.same(f.pipe(fd, fc, fb) 'a', 'abcd')
     end)
   end)
   describe('compose', function()
@@ -47,10 +47,10 @@ describe('flua', function()
       return t .. 'd'
     end
 
-    assert.are.same('a', f.compose() 'a')
-    assert.are.same('ad', f.compose(fd) 'a')
-    assert.are.same('acd', f.compose(fc, fd) 'a')
-    assert.are.same('abcd', f.compose(fb, fc, fd) 'a')
+    assert.are.same(f.compose() 'a', 'a')
+    assert.are.same(f.compose(fd) 'a', 'ad')
+    assert.are.same(f.compose(fc, fd) 'a', 'acd')
+    assert.are.same(f.compose(fb, fc, fd) 'a', 'abcd')
   end)
   describe('comp', function()
     it('should compose functions', function()
@@ -66,92 +66,74 @@ describe('flua', function()
         return t .. 'd'
       end
 
-      assert.are.same('a', f.comp 'a' ())
-      assert.are.same('ad', f.comp 'a' (fd))
-      assert.are.same('acd', f.comp 'a' (fc, fd))
-      assert.are.same('abcd', f.comp 'a' (fb, fc, fd))
+      assert.are.same(f.comp 'a'(), 'a')
+      assert.are.same(f.comp 'a'(fd), 'ad')
+      assert.are.same(f.comp 'a'(fc, fd), 'acd')
+      assert.are.same(f.comp 'a'(fb, fc, fd), 'abcd')
     end)
   end)
   describe('map', function()
     it('should map', function()
       assert.are.same(
-        {},
-        f.comp {} (
+        f.comp {}(
           ipairs,
           f.map(function(k, v)
             return k, 2 * v
           end),
           f.to_table()
-        )
+        ),
+        {}
       )
       assert.are.same(
-        { 2, 4, 6 },
         f.compose(
           ipairs,
           f.map(function(k, v)
             return k, 2 * v
           end),
           f.to_table()
-        ) { 1, 2, 3 }
+        ) { 1, 2, 3 },
+        { 2, 4, 6 }
       )
       assert.are.same(
-        { 2, 4, 6 },
-        f.comp { 1, 2, 3 } (
+        f.comp { 1, 2, 3 }(
           ipairs,
           f.map(function(k, v)
             return k, 2 * v
           end),
           f.to_table()
-        )
+        ),
+        { 2, 4, 6 }
       )
     end)
   end)
   describe('list', function()
     it('should clone and transform a list', function()
-      assert.are.same({}, f.list {})
-      assert.are.same({ 2, 3 }, f.list { 2, 3 })
+      assert.are.same(f.list {}, {})
+      assert.are.same(f.list { 2, 3 }, { 2, 3 })
       assert.are.same(
-        { 4, 6 },
         f.list(
           { 2, 3 },
           f.map(function(i, x)
             return i, x * 2
           end)
-        )
+        ),
+        { 4, 6 }
       )
     end)
   end)
   describe('tbl', function()
     it('should clone and transform a table', function()
-      assert.are.same({}, f.tbl {})
-      assert.are.same({ 2, 3 }, f.tbl { 2, 3 })
+      assert.are.same(f.tbl {}, {})
+      assert.are.same(f.tbl { 2, 3 }, { 2, 3 })
       assert.are.same(
-        { 4, 6 },
         f.tbl(
           { 2, 3 },
           f.map(function(k, x)
             return k, x * 2
           end)
-        )
+        ),
+        { 4, 6 }
       )
-    end)
-  end)
-  describe('map_opt', function()
-    it('should map or skip', function()
-      local i
-      local function cb(k, x)
-        if x % 2 == 0 then
-          i = i + 1
-          return i, x * 2
-        end
-      end
-
-      i = 0
-      assert.are.same({}, f.tbl({}, f.map_opt(cb)))
-      i = 0
-      assert.are.same({}, f.tbl({ 3 }, f.map_opt(cb)))
-      i = 0
-      assert.are.same({ 4, 8, 12 }, f.tbl({ 2, 3, 4, 5, 6 }, f.map_opt(cb)))
     end)
   end)
   describe('filter', function()
@@ -160,50 +142,57 @@ describe('flua', function()
         return i % 2 == 1
       end
 
-      assert.are.same({ 1, 3, 5 }, f.to_list()(f.filter(odd)(f.range(5))))
+      assert.are.same(f.to_list()(f.filter(odd)(f.range(5))), { 1, 3, 5 })
     end)
   end)
   describe('indexize', function()
     it('should prepend an index', function()
       assert.are.same(
-        { 1, 2, 3 },
-        f.to_table()(f.indexize(ipairs { 'a', 'b', 'c' }))
+        f.to_table()(f.indexize(ipairs { 'a', 'b', 'c' })),
+        { 1, 2, 3 }
       )
     end)
   end)
   describe('nth', function()
     it('should return nth value', function()
-      assert.are.same(3, f.nth(3)(f.range(1, 20)))
+      assert.are.same(f.nth(3)(f.range(1, 20)), 3)
+    end)
+    it('should return nil when there is not enough values', function()
+      assert.are.same(f.nth(30)(f.range(1, 20)), nil)
     end)
   end)
   describe('range', function()
     it('should iterate the range with index', function()
-      assert.are.same({ 1, 2, 3 }, f.to_table()(f.indexize(f.range(1, 3))))
-      assert.are.same({ 1, 3, 5 }, f.to_table()(f.indexize(f.range(1, 5, 2))))
-      assert.are.same({ 5, 3, 1 }, f.to_table()(f.indexize(f.range(5, 1, -2))))
+      assert.are.same(f.to_table()(f.indexize(f.range(1, 3))), { 1, 2, 3 })
+      assert.are.same(f.to_table()(f.indexize(f.range(1, 5, 2))), { 1, 3, 5 })
+      assert.are.same(f.to_table()(f.indexize(f.range(5, 1, -2))), { 5, 3, 1 })
       assert.are.same(
-        { 5, 3, 1 },
-        f.pipe(f.to_table(), f.indexize)(f.range(5, 1, -2))
+        f.pipe(f.to_table(), f.indexize)(f.range(5, 1, -2)),
+        { 5, 3, 1 }
       )
       assert.are.same(
-        { 5, 3, 1 },
-        f.compose(f.indexize, f.to_table())(f.range(5, 1, -2))
+        f.compose(f.indexize, f.to_table())(f.range(5, 1, -2)),
+        { 5, 3, 1 }
       )
     end)
   end)
-  describe('fold', function()
+  describe('fold1', function()
     it('should fold', function()
       local function sum(acc, x)
         return acc + x
       end
 
-      assert.are.same(9, f.fold1(sum, 0)(f.range(2, 4)))
-      -- assert.are.same(9, f.fold(sum)(f.range(2, 4)))
+      assert.are.same(f.fold1(sum, 0)(f.range(2, 4)), 9)
     end)
   end)
   describe('min', function()
     it('should return the min value', function()
-      assert.are.same(f.comp { 2, 4, -1, 5 } (ipairs, f.min()), -1)
+      assert.are.same(f.comp { 2, 4, -1, 5 }(ipairs, f.min()), -1)
+    end)
+  end)
+  describe('max', function()
+    it('should return the min value', function()
+      assert.are.same(f.comp { 2, 4, -1, 5 }(ipairs, f.max()), 5)
     end)
   end)
   describe('each', function()
@@ -213,30 +202,19 @@ describe('flua', function()
         acc = acc .. v
       end
 
-      f.comp { 'b', 'c', 'd', 'e' } (ipairs, f.each(inc))
-      assert.are.same(acc, 'abcde')
-    end)
-  end)
-  describe('tap', function()
-    it('should be called on each iteration', function()
-      local acc = 'a'
-      local function inc(_, v)
-        acc = acc .. v
-      end
-
-      f.comp { 'b', 'c', 'd', 'e' } (ipairs, f.tap(inc), f.last)
+      f.comp { 'b', 'c', 'd', 'e' }(ipairs, f.each(inc))
       assert.are.same(acc, 'abcde')
     end)
   end)
   describe('concat', function()
     it('concats two iterators', function()
       assert.are.same(
-        { 1, 2, 3, 4 },
-        (f.to_list()(f.concat(f.range(3, 4))(f.range(1, 2))))
+        (f.to_list()(f.concat(f.range(3, 4))(f.range(1, 2)))),
+        { 1, 2, 3, 4 }
       )
       assert.are.same(
-        { 1, 1, 2, 1, 2, 3 },
-        (f.to_list()(f.concat(f.concat(f.range(3))(f.range(2)))(f.range(1))))
+        (f.to_list()(f.concat(f.concat(f.range(3))(f.range(2)))(f.range(1)))),
+        { 1, 1, 2, 1, 2, 3 }
       )
     end)
   end)
@@ -251,7 +229,7 @@ describe('flua', function()
         end
       end
 
-      assert.are.same({ 1, 1, 2, 1, 2, 3 }, f.to_list()(f.flatten(fu)))
+      assert.are.same(f.to_list()(f.flatten(fu)), { 1, 1, 2, 1, 2, 3 })
     end)
     it('should respect multiple values', function()
       local function t(i)
@@ -262,17 +240,9 @@ describe('flua', function()
         return { ... }
       end
 
-      local function u(i)
-        return i, i, i, i
-      end
-
-      local function v()
-        return 1, 1, 1, 1
-      end
-
       assert.are.same(
-        { 1, 1, 1, 1 },
-        f.compose(f.chain(t), f.head(), pack)(f.range(3))
+        f.compose(f.chain(t), f.head(), pack)(f.range(3)),
+        { 1, 1, 1, 1 }
       )
     end)
   end)
@@ -283,8 +253,8 @@ describe('flua', function()
       end
 
       assert.are.same(
-        { 1, 1, 2, 1, 2, 3 },
-        f.compose(f.chain(t), f.to_list())(f.range(3))
+        f.compose(f.chain(t), f.to_list())(f.range(3)),
+        { 1, 1, 2, 1, 2, 3 }
       )
     end)
   end)
@@ -292,61 +262,68 @@ describe('flua', function()
     it('should chain', function()
       local t = { 1, 2, 1, 2 }
       assert.are.same(
-        t,
-        f.comp { 1, 2 } (
+        f.comp { 1, 2 }(
           ipairs,
           f.chain(function(_, _)
             return ipairs(t)
           end),
           f.to_table()
-        )
+        ),
+        t
       )
     end)
   end)
   describe('zip', function()
-    local function iter(_, k)
-      if k < 5 then
-        return k + 1
-      end
-    end
-
     it('should zip two iterators', function()
       assert.are.same(
-        { 3, 4, 5 },
-        f.to_table()(f.zip(iter, nil, 2)(iter, nil, 0))
+        f.to_table()(f.zip(f.range(3, 5), nil, 2)(f.range(1, 3), nil, 0)),
+        { 3, 4, 5 }
+      )
+    end)
+    it('should truncate when first is shorter', function()
+      assert.are.same(
+        f.to_table()(f.zip(f.range(3, 5), nil, 2)(f.range(1, 2), nil, 0)),
+        { 3, 4 }
+      )
+    end)
+    it('should truncate when second is shorter', function()
+      assert.are.same(
+        f.to_table()(f.zip(f.range(3, 4), nil, 2)(f.range(1, 3), nil, 0)),
+        { 3, 4 }
       )
     end)
   end)
   describe('take', function()
     it('should take the nth first values', function()
-      assert.are.same({ 1, 2, 3 }, (f.to_list()(f.take(3)(f.range(5)))))
+      assert.are.same((f.to_list()(f.take(3)(f.range(5)))), { 1, 2, 3 })
     end)
     it('should iterate while condition is true', function()
       assert.are.same(
-        { 1, 2 },
-        f.comp { 1, 2, 3, 4 } (
+        f.comp { 1, 2, 3, 4 }(
           ipairs,
           f.take(function(_, v)
             return v ~= 3
           end),
           f.to_table()
-        )
+        ),
+        { 1, 2 }
       )
     end)
   end)
   describe('drop', function()
+    it('should return empty list when iterator is empty', function()
+      assert.are.same((f.to_list()(f.drop(3)(f.null()))), {})
+    end)
+    it('should return empty list when iterator is too short', function()
+      assert.are.same((f.to_list()(f.drop(10)(f.range(5)))), {})
+    end)
     it('should start iterating after n values', function()
-      assert.are.same({ 4, 5 }, (f.to_list()(f.drop(3)(f.range(5)))))
+      assert.are.same((f.to_list()(f.drop(3)(f.range(5)))), { 4, 5 })
     end)
     it('should start iterating when condition is false', function()
-      assert.are.same(
-        { 3, 4, 5 },
-        (
-        f.to_list()(f.drop(function(x)
-          return x < 3
-        end)(f.range(5)))
-        )
-      )
+      assert.are.same((f.to_list()(f.drop(function(x)
+        return x < 3
+      end)(f.range(5)))), { 3, 4, 5 })
     end)
   end)
 end)

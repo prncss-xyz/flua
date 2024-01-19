@@ -17,33 +17,6 @@ function M.map(cb)
   end
 end
 
---- like map, but skip value when returning undefined
-function M.map_opt(cb)
-  return function(gen, param, _)
-    local a
-    local s
-    local function b(r_, ...)
-      if r_ == nil then
-        return a(gen(param, s))
-      else
-        return r_, ...
-      end
-    end
-
-    function a(s_, ...)
-      s = s_
-      if s == nil then
-        return
-      end
-      return b(cb(s, ...))
-    end
-
-    return function()
-      return a(gen(param, s))
-    end
-  end
-end
-
 --- create a new iterator where values for with cb is falsy are skipped
 function M.filter(cb)
   return function(gen, param, state)
@@ -75,19 +48,18 @@ function M.indexize(gen, param, state)
 end
 
 --- returns the last value of an iterator
-function M.last(gen, param, state)
-  local largs, args
-  while true do
-    args = { gen(param, state) }
-    state = args[1]
-    if state == nil then
-      if largs == nil then
-        return
+function M.last()
+  local l
+  return function(gen, param, state)
+    local v = state
+    while true do
+      v = gen(param, v)
+      if v == nil then
+        return l
       else
-        return unpack(largs)
+        l = v
       end
     end
-    largs = args
   end
 end
 
@@ -100,33 +72,10 @@ function M.last1(gen, param, state)
   return lstate
 end
 
---- FIXME:
 function M.scan1(reducer, acc)
-  local fun, first
   local function scan(...)
-    if first then
-      acc = fun(...)
-      first = false
-    else
-      acc = reducer(acc, ...)
-    end
+    acc = reducer(acc, ...)
     return acc
-  end
-
-  return M.map(scan)
-end
-
-function M.scan3(reducer, init)
-  local first
-  local acc1, acc2, acc3
-  local function scan(...)
-    if first then
-      acc1, acc2, acc3 = init(...)
-      first = false
-    else
-      acc1, acc2, acc3 = reducer(acc1, acc2, acc3, ...)
-    end
-    return acc1, acc2, acc3
   end
 
   return M.map(scan)
@@ -134,10 +83,6 @@ end
 
 function M.fold1(reducer, acc)
   return M.compose(M.scan1(reducer, acc), M.last1)
-end
-
-function M.fold3(reducer, acc)
-  return M.compose(M.scan3(reducer, acc), M.last3)
 end
 
 function M.chain(cb)
@@ -267,7 +212,7 @@ function M.tap(cb)
 end
 
 function M.each(cb)
-  return pipe0(M.last, M.tap(cb))
+  return pipe0(M.last(), M.tap(cb))
 end
 
 local function counter(n)
@@ -321,22 +266,10 @@ function M.drop(cb)
   end
 end
 
-function M.tail()
-  return function(gen, param, state)
-    state = gen(param, state)
-    return gen, param, state
-  end
-end
-
 function M.head()
   return function(gen, param, state)
     return gen(param, state)
   end
-end
-
-function M.tail_head(gen, param, state)
-  state = gen(param, state)
-  return gen, param, state, M.head()(gen, param, state)
 end
 
 -- iterators
@@ -467,19 +400,6 @@ local function cmp_(a, b)
     return 1
   end
   return 0
-end
-
-function M.imin(cmp)
-  cmp = cmp or cmp_
-  return M.fold1(function(acc, _, v)
-    if acc == nil then
-      return v
-    end
-    if cmp(v, acc) < 0 then
-      return v
-    end
-    return acc
-  end)
 end
 
 function M.min(cmp)
