@@ -44,6 +44,7 @@ return {
   -- (exclude overrules include, do not include
   -- the .lua extension, path separator is always '/')
   ['exclude'] = {
+    '_spec',
     'luacov$',
     'luacov/reporter$',
     'luacov/defaults$',
