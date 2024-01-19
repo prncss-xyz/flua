@@ -72,6 +72,7 @@ function M.last1(gen, param, state)
   return lstate
 end
 
+--- apply a reducing operation to the iterator; use fold to get end results conveniently
 function M.scan1(reducer, acc)
   local function scan(...)
     acc = reducer(acc, ...)
