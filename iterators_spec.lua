@@ -1,10 +1,3 @@
-if _VERSION ~= 'Lua 5.1' then
-  print(
-    'this is meant to run with lua 5.1, your are currently running ' .. _VERSION
-  )
-  return
-end
-
 local f = require 'iterators'
 
 describe('flua', function()
@@ -288,7 +281,7 @@ describe('flua', function()
     end)
     it('should truncate when second is shorter', function()
       assert.are.same(
-        f.to_table()(f.zip(f.range(3, 4), nil, 2)(f.range(1, 3), nil, 0)),
+        f.to_table()(f.zip(f.range(3, 4), nil, 2)(f.range(), nil, 0)),
         { 3, 4 }
       )
     end)
