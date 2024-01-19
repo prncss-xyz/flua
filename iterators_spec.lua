@@ -72,12 +72,10 @@ describe('flua', function()
       end
       assert.are.same(f.comp {}(ipairs, f.map(idouble), f.to_table()), {})
       assert.are.same(
-        f.compose(ipairs, f.map(idouble), f.to_table()) { 1, 2, 3 },
-        { 2, 4, 6 }
+        f.compose(ipairs, f.map(idouble), f.to_table()) { 1, 2, 3 }, { 2, 4, 6 }
       )
       assert.are.same(
-        f.comp { 1, 2, 3 }(ipairs, f.map(idouble), f.to_table()),
-        { 2, 4, 6 }
+        f.comp { 1, 2, 3 }(ipairs, f.map(idouble), f.to_table()), { 2, 4, 6 }
       )
     end)
   end)
@@ -86,13 +84,10 @@ describe('flua', function()
       assert.are.same(f.list {}, {})
       assert.are.same(f.list { 2, 3 }, { 2, 3 })
       assert.are.same(
-        f.list(
-          { 2, 3 },
-          f.map(function(i, x)
+        f.list( { 2, 3 }, f.map(function(i, x)
             return i, x * 2
           end)
-        ),
-        { 4, 6 }
+        ), { 4, 6 }
       )
     end)
   end)
@@ -101,13 +96,9 @@ describe('flua', function()
       assert.are.same(f.tbl {}, {})
       assert.are.same(f.tbl { 2, 3 }, { 2, 3 })
       assert.are.same(
-        f.tbl(
-          { 2, 3 },
-          f.map(function(k, x)
+        f.tbl( { 2, 3 }, f.map(function(k, x)
             return k, x * 2
-          end)
-        ),
-        { 4, 6 }
+          end)), { 4, 6 }
       )
     end)
   end)
@@ -116,15 +107,13 @@ describe('flua', function()
       local function odd(i)
         return i % 2 == 1
       end
-
       assert.are.same(f.to_list()(f.filter(odd)(f.range(5))), { 1, 3, 5 })
     end)
   end)
   describe('indexize', function()
     it('should prepend an index', function()
       assert.are.same(
-        f.to_table()(f.indexize(ipairs { 'a', 'b', 'c' })),
-        { 1, 2, 3 }
+        f.to_table()(f.indexize(ipairs { 'a', 'b', 'c' })), { 1, 2, 3 }
       )
     end)
   end)
@@ -142,12 +131,10 @@ describe('flua', function()
       assert.are.same(f.to_table()(f.indexize(f.range(1, 5, 2))), { 1, 3, 5 })
       assert.are.same(f.to_table()(f.indexize(f.range(5, 1, -2))), { 5, 3, 1 })
       assert.are.same(
-        f.pipe(f.to_table(), f.indexize)(f.range(5, 1, -2)),
-        { 5, 3, 1 }
+        f.pipe(f.to_table(), f.indexize)(f.range(5, 1, -2)), { 5, 3, 1 }
       )
       assert.are.same(
-        f.compose(f.indexize, f.to_table())(f.range(5, 1, -2)),
-        { 5, 3, 1 }
+        f.compose(f.indexize, f.to_table())(f.range(5, 1, -2)), { 5, 3, 1 }
       )
     end)
   end)
@@ -184,12 +171,10 @@ describe('flua', function()
   describe('concat', function()
     it('concats two iterators', function()
       assert.are.same(
-        (f.to_list()(f.concat(f.range(3, 4))(f.range(1, 2)))),
-        { 1, 2, 3, 4 }
+        (f.to_list()(f.concat(f.range(3, 4))(f.range(1, 2)))), { 1, 2, 3, 4 }
       )
       assert.are.same(
-        (f.to_list()(f.concat(f.concat(f.range(3))(f.range(2)))(f.range(1)))),
-        { 1, 1, 2, 1, 2, 3 }
+        (f.to_list()(f.concat(f.concat(f.range(3))(f.range(2)))(f.range(1)))), { 1, 1, 2, 1, 2, 3 }
       )
     end)
   end)
@@ -215,8 +200,7 @@ describe('flua', function()
       end
 
       assert.are.same(
-        f.compose(f.chain(t), f.to_list())(f.range(3)),
-        { 1, 1, 2, 1, 2, 3 }
+        f.compose(f.chain(t), f.to_list())(f.range(3)), { 1, 1, 2, 1, 2, 3 }
       )
     end)
     it('should chain', function()
@@ -228,8 +212,7 @@ describe('flua', function()
             return ipairs(t)
           end),
           f.to_table()
-        ),
-        t
+        ), t
       )
     end)
     it('should respect multiple values', function()
@@ -242,28 +225,24 @@ describe('flua', function()
       end
 
       assert.are.same(
-        f.compose(f.chain(t), f.head(), pack)(f.range(3)),
-        { 1, 1, 1, 1 }
+        f.compose(f.chain(t), f.head(), pack)(f.range(3)), { 1, 1, 1, 1 }
       )
     end)
   end)
   describe('zip', function()
     it('should zip two iterators', function()
       assert.are.same(
-        f.to_table()(f.zip(f.range(3, 5), nil, 2)(f.range(1, 3), nil, 0)),
-        { 3, 4, 5 }
+        f.to_table()(f.zip(f.range(3, 5), nil, 2)(f.range(1, 3), nil, 0)), { 3, 4, 5 }
       )
     end)
     it('should truncate when first is shorter', function()
       assert.are.same(
-        f.to_table()(f.zip(f.range(3, 5), nil, 2)(f.range(1, 2), nil, 0)),
-        { 3, 4 }
+        f.to_table()(f.zip(f.range(3, 5), nil, 2)(f.range(1, 2), nil, 0)), { 3, 4 }
       )
     end)
     it('should truncate when second is shorter', function()
       assert.are.same(
-        f.to_table()(f.zip(f.range(3, 4), nil, 2)(f.range(), nil, 0)),
-        { 3, 4 }
+        f.to_table()(f.zip(f.range(3, 4), nil, 2)(f.range(), nil, 0)), { 3, 4 }
       )
     end)
   end)
@@ -279,8 +258,7 @@ describe('flua', function()
             return v ~= 3
           end),
           f.to_table()
-        ),
-        { 1, 2 }
+        ), { 1, 2 }
       )
     end)
   end)
